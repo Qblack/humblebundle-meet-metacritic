@@ -1,15 +1,11 @@
 #!/usr/bin/python
-
-from datetime import datetime
-from BeautifulSoup import BeautifulSoup
-from pprint import pprint
-import urllib2
-import sqlite3
 import sys
-import re
-import os
+from pprint import pprint
+from bs4 import BeautifulSoup
+import requests
 
-TYPES = [ 'all', 'movie', 'game', 'album', 'tv', 'person', 'video', 'company' ]
+TYPES = ['all', 'movie', 'game', 'album', 'tv', 'person', 'video', 'company']
+
 
 class MetacriticInfo:
     def __init__(self):
@@ -41,6 +37,7 @@ class MetacriticInfo:
         self.num_online = None
         self.customization = None
 
+
 class SearchResult:
     def __init__(self):
         self.id = None
@@ -58,18 +55,19 @@ class SearchResult:
         self.user_score = None
         self.runtime = None
 
+
 class Metacritic:
 
     @staticmethod
-    def search(query, type="all"):
-        url = get_search_url(query, type)
+    def search(query, data_type="all"):
+        url = get_search_url(query, data_type)
         html = get_html(url)
         if not html:
             return None
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html.text, "html.parser")
         i = 0
         page = 0
-        allresults = []
+        all_results = []
         results = soup.findAll("li", "result")
         for result in results:
             res = SearchResult()
@@ -110,9 +108,9 @@ class Metacritic:
 
             res.index = i
             res.page = page
-            allresults.append(res)
+            all_results.append(res)
             i = i + 1
-        return allresults
+        return all_results
 
     @staticmethod
     def get_info(id):
@@ -120,15 +118,15 @@ class Metacritic:
         html = get_html(url)
         if not html:
             return None
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html.text, "html.parser")
         prod = MetacriticInfo()
         prod.id = id
 
-        og_type = soup.find("meta", attrs={"name":"og:type"})
+        og_type = soup.find("meta", attrs={"name": "og:type"})
         if og_type:
             prod.type = og_type["content"].strip()
 
-        og_image = soup.find("meta", attrs={"name":"og:image"})
+        og_image = soup.find("meta", attrs={"name": "og:image"})
         if og_image:
             prod.boxart = og_image["content"].strip()
 
@@ -196,9 +194,13 @@ class Metacritic:
             if table:
                 trs = table.findAll("tr")
                 for tr in trs:
-                    process_tr(prod, tr)
+                    try:
+                        process_tr(prod, tr)
+                    except:
+                        pass
 
         return prod
+
 
 def process_tr(prod, tr):
     th = tr.find("th")
@@ -228,6 +230,8 @@ def process_tr(prod, tr):
         prod.num_online = td_val
     elif th_val == "Customization":
         prod.customization = td_val
+    return
+
 
 def get_li_span_data(node, data_name):
     li = node.find("li", data_name)
@@ -237,21 +241,26 @@ def get_li_span_data(node, data_name):
             return data.text.strip()
     return None
 
-def get_search_url(query, type="all"):
-    return "http://www.metacritic.com/search/%s/%s/results?sort=relevancy" % (type, query.replace(":", "").replace("-", "").replace("_", "").replace(" ", "+"))
 
-def get_details_url(id):
-    return "http://www.metacritic.com/%s/details" % id.replace("_", "/")
+def get_search_url(query, data_type="all"):
+    query_str = query.replace(":", "").replace("-", "").replace("_", "").replace(" ", "+")
+    url = "http://www.metacritic.com/search/{}/{}/results?sort=relevancy".format(data_type, query_str)
+    return url
+
+
+def get_details_url(detail_id):
+    return "http://www.metacritic.com/{}/details".format(detail_id.replace("_", "/"))
+
 
 def get_html(url):
     try:
-        request = urllib2.Request(url)
-        request.add_header("User-Agent", "Mozilla/5.001 (windows; U; NT4.0; en-US; rv:1.0) Gecko/25250101")
-        html = urllib2.urlopen(request).read()
+        html = requests.get(url,
+                            headers={"User-Agent": "Mozilla/5.001 (windows; U; NT4.0; en-US; rv:1.0) Gecko/25250101"})
         return html
     except:
-        print "Error accessing:", url
+        print("Error accessing:", url)
         return None
+
 
 def main():
     if len(sys.argv) == 2:
@@ -262,9 +271,10 @@ def main():
         return
     for result in results:
         pprint(vars(result))
-        print ""
+        print()
         pprint(vars(Metacritic.get_info(result.id)))
-        print ""
+        print()
+
 
 if __name__ == "__main__":
     main()
