@@ -2,7 +2,32 @@
   <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
-
+            <div class="row" v-for="humbleItem in humbleItems">
+                <div class="col col-md-2 offset-md-1">
+                    <h4>{{humbleItem.title}}</h4>
+                    <a href='{{humbleItem.url}}/'>
+                        <img src='{{humbleItem.icon}}'/>
+                    </a>
+                </div>
+                <div class="col col-md-1">
+                    <h4>Genre</h4>
+                    <span v-for="genre in humbleItem.genres.split(',')">
+                        {{genre}}
+                    </span>
+                </div>
+                <div class="col col-md-1">
+                    <h4>Numbers</h4>
+                    <a href="{{humbleItem.link}}">MetaScore</a>: <span style="color:#328A88">{{humbleItem.metascore}}</span>
+                    <br>
+                    <span class="font-weight-bold">Userscore:</span> {{humbleItem.user_score}}
+                    <br>
+                    <span class="font-weight-bold">#Players:</span> {{humbleItem.num_players}}
+                </div>
+                <div class="col col-5">
+                    <h4>Summary</h4>
+                    {{humbleItem.summary}}
+                </div>
+            </div>
         </div>
     </div>
   </div>
